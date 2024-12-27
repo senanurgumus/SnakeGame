@@ -18,20 +18,33 @@
             background-color: #000;
             display: block;
         }
-        #scoreboard {
+        /* Score Container */
+        #scoreContainer {
             position: absolute;
             top: 20px;
-            left: 20px;
-            color: #333;
-            font-size: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 10px; /* Space between Score and High Score */
+            background-color: rgba(255, 255, 255, 0.8); /* Semi-transparent background */
+            padding: 10px 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
         }
-        #highscore {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            color: #333;
+
+        /* Scoreboard and Highscore Styles */
+        #scoreboard, #highscore {
+            background-color: #fff;
+            border: 2px solid #333;
+            border-radius: 8px;
+            padding: 10px 20px;
             font-size: 20px;
+            color: #333;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
+
         /* Overlay Background */
         #overlay {
             position: absolute;
@@ -88,8 +101,11 @@
     </style>
 </head>
 <body>
-    <div id="scoreboard">Score: 0</div>
-    <div id="highscore">High Score: 0</div>
+    <!-- Score Container -->
+    <div id="scoreContainer">
+        <div id="scoreboard">Score: 0</div>
+        <div id="highscore">High Score: 0</div>
+    </div>
     <canvas id="gameCanvas" width="600" height="400"></canvas>
 
     <!-- Overlay and Message Box -->
@@ -101,8 +117,8 @@
     </div>
 
     <!-- Sound Effects -->
-    <audio id="eatSound" src="food_G1U6tlb.mp3"></audio>
-    <audio id="gameOverSound" src="sad-game-over-trombone-471 (mp3cut.net).wav"></audio>
+    <audio id="eatSound" src="sounds/eat-sound.mp3"></audio>
+    <audio id="gameOverSound" src="sounds/game-over-sound.wav"></audio>
 
     <script>
         const canvas = document.getElementById('gameCanvas');
@@ -316,7 +332,7 @@
 
                     // Check if snake eats bait
                     if (cell.x === bait.x && cell.y === bait.y) {
-                        eatSound.play();
+                        playEatSound();
                         snake.maxCells++;
                         score++;
                         scoreElement.textContent = 'Score: ' + score;
@@ -347,10 +363,26 @@
         // End game function
         function endGame() {
             isGameOver = true;
-            gameOverSound.play();
+            playGameOverSound();
             messageText.textContent = 'Game Over';
             controlButton.textContent = 'Restart';
             overlay.style.display = 'flex';
+        }
+
+        // Play eat sound
+        function playEatSound() {
+            eatSound.currentTime = 0; // Rewind to start
+            eatSound.play().catch(function(error) {
+                console.error('Error playing eat sound:', error);
+            });
+        }
+
+        // Play game over sound
+        function playGameOverSound() {
+            gameOverSound.currentTime = 0; // Rewind to start
+            gameOverSound.play().catch(function(error) {
+                console.error('Error playing game over sound:', error);
+            });
         }
 
         // Start the game initially by showing the overlay
