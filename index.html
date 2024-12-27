@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Enhanced Snake Game</title>
+    <style>
+        body {
+            background-color: #f0f0f0;
+            display: flex;
+            height: 100vh;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+            position: relative;
+            font-family: Arial, sans-serif;
+        }
+        canvas {
+            background-color: #000;
+            display: block;
+        }
+        #scoreboard {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #333;
+            font-size: 20px;
+        }
+        #highscore {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: #333;
+            font-size: 20px;
+        }
+        /* Overlay Background */
+        #overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1;
+        }
+        /* Message Box */
+        #messageBox {
+            background: #222;
+            padding: 40px 60px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        #messageText {
+            color: #ff6347;
+            font-size: 36px;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        /* Control Button */
+        #controlButton {
+            padding: 15px 40px;
+            font-size: 20px;
+            cursor: pointer;
+            background-color: #28a745;
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        #controlButton:hover {
+            background-color: #218838;
+            transform: translateY(-2px);
+        }
+        #controlButton:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        /* Animation */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+    <div id="scoreboard">Score: 0</div>
+    <div id="highscore">High Score: 0</div>
+    <canvas id="gameCanvas" width="600" height="400"></canvas>
+
+    <!-- Overlay and Message Box -->
+    <div id="overlay">
+        <div id="messageBox">
+            <div id="messageText">Welcome to Snake Game</div>
+            <button id="controlButton">Start Game</button>
+        </div>
+    </div>
+
+    <!-- Sound Effects -->
+    <audio id="eatSound" src="food_G1U6tlb.mp3"></audio>
+    <audio id="gameOverSound" src="sad-game-over-trombone-471 (mp3cut.net).wav"></audio>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('scoreboard');
+        const highScoreElement = document.getElementById('highscore');
+        const overlay = document.getElementById('overlay');
+        const messageText = document.getElementById('messageText');
+        const controlButton = document.getElementById('controlButton');
+        const eatSound = document.getElementById('eatSound');
+        const gameOverSound = document.getElementById('gameOverSound');
+
+        const grid = 20; // Grid size
+        let count = 0;
+        let score = 0;
+        let highScore = 0;
+        let gameSpeed = 100; // Initial game speed in ms
+        let gameLoopInterval;
+
+        // Initialize high score from localStorage
+        if (localStorage.getItem('highScore')) {
+            highScore = parseInt(localStorage.getItem('highScore'));
+            highScoreElement.textContent = 'High Score: ' + highScore;
+        }
+
+        // Snake properties
+        let snake = {
+            x: 200,
+            y: 200,
+            dx: grid,
+            dy: 0,
+            cells: [],
+            maxCells: 4
+        };
+
+        // Bait properties
+        let bait = {
+            x: 300,
+            y: 300
+        };
+
+        // Obstacles
+        const obstacleCount = 5;
+        let obstacles = [];
+
+        // Game state
+        let isGameOver = false;
+        let isPaused = false;
+
+        // Function to generate random integer in range [min, max)
+        function getRandomInt(min, max) {
+            return Math.floor(Math.random() * (max - min)) + min;
+        }
+
+        // Place bait at a random position not occupied by the snake or obstacles
+        function placeBait() {
+            let valid = false;
+            while (!valid) {
+                bait.x = getRandomInt(0, canvas.width / grid) * grid;
+                bait.y = getRandomInt(0, canvas.height / grid) * grid;
+
+                // Ensure bait is not on the snake
+                valid = !snake.cells.some(cell => cell.x === bait.x && cell.y === bait.y);
+
+                // Ensure bait is not on any obstacle
+                if (valid) {
+                    valid = !obstacles.some(obs => obs.x === bait.x && obs.y === bait.y);
+                }
+            }
+        }
+
+        // Place obstacles at random positions
+        function placeObstacles() {
+            obstacles = [];
+            for (let i = 0; i < obstacleCount; i++) {
+                let obstacle = {x: 0, y: 0};
+                let valid = false;
+                while (!valid) {
+                    obstacle.x = getRandomInt(0, canvas.width / grid) * grid;
+                    obstacle.y = getRandomInt(0, canvas.height / grid) * grid;
+
+                    // Ensure obstacle is not on the snake or bait
+                    valid = !snake.cells.some(cell => cell.x === obstacle.x && cell.y === obstacle.y) &&
+                            !(obstacle.x === bait.x && obstacle.y === bait.y) &&
+                            !obstacles.some(obs => obs.x === obstacle.x && obs.y === obstacle.y);
+                }
+                obstacles.push(obstacle);
+            }
+        }
+
+        // Handle keyboard input
+        document.addEventListener('keydown', function(e) {
+            if (isGameOver) return;
+
+            if (e.key === 'ArrowLeft' && snake.dx === 0) {
+                snake.dx = -grid;
+                snake.dy = 0;
+            } else if (e.key === 'ArrowUp' && snake.dy === 0) {
+                snake.dy = -grid;
+                snake.dx = 0;
+            } else if (e.key === 'ArrowRight' && snake.dx === 0) {
+                snake.dx = grid;
+                snake.dy = 0;
+            } else if (e.key === 'ArrowDown' && snake.dy === 0) {
+                snake.dy = grid;
+                snake.dx = 0;
+            } else if (e.key === ' ') { // Space bar to pause/resume
+                if (!isGameOver) {
+                    isPaused = !isPaused;
+                    if (!isPaused) {
+                        requestAnimationFrame(gameLoop);
+                    } else {
+                        clearTimeout(gameLoopInterval);
+                    }
+                }
+            }
+        });
+
+        // Control button event (Start or Restart)
+        controlButton.addEventListener('click', function() {
+            if (isGameOver || score === 0) {
+                resetGame();
+            }
+            overlay.style.display = 'none';
+        });
+
+        // Reset game state
+        function resetGame() {
+            snake.x = 200;
+            snake.y = 200;
+            snake.cells = [];
+            snake.maxCells = 4;
+            snake.dx = grid;
+            snake.dy = 0;
+
+            score = 0;
+            scoreElement.textContent = 'Score: ' + score;
+
+            placeBait();
+            placeObstacles();
+
+            gameSpeed = 100;
+            isGameOver = false;
+            isPaused = false;
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Initialize obstacles and bait
+        placeBait();
+        placeObstacles();
+
+        // Game loop using setTimeout for adjustable speed
+        function gameLoop() {
+            if (isPaused || isGameOver) return;
+
+            gameLoopInterval = setTimeout(function() {
+                requestAnimationFrame(gameLoop);
+
+                // Clear the canvas
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                // Move the snake
+                snake.x += snake.dx;
+                snake.y += snake.dy;
+
+                // Check wall collisions
+                if (snake.x < 0 || snake.x >= canvas.width || snake.y < 0 || snake.y >= canvas.height) {
+                    endGame();
+                    return;
+                }
+
+                // Keep track of the snake's cells
+                snake.cells.unshift({x: snake.x, y: snake.y});
+
+                // Remove cells as we move away from the head
+                if (snake.cells.length > snake.maxCells) {
+                    snake.cells.pop();
+                }
+
+                // Draw bait
+                ctx.fillStyle = 'red';
+                ctx.fillRect(bait.x, bait.y, grid-1, grid-1);
+
+                // Draw obstacles
+                ctx.fillStyle = 'gray';
+                obstacles.forEach(function(obs) {
+                    ctx.fillRect(obs.x, obs.y, grid-1, grid-1);
+                });
+
+                // Draw snake
+                ctx.fillStyle = 'yellow';
+                snake.cells.forEach(function(cell, index) {
+                    ctx.fillRect(cell.x, cell.y, grid-1, grid-1);  
+
+                    // Check collision with itself
+                    for (let i = index + 1; i < snake.cells.length; i++) {
+                        if (cell.x === snake.cells[i].x && cell.y === snake.cells[i].y) {
+                            endGame();
+                            return;
+                        }
+                    }
+
+                    // Check collision with obstacles
+                    for (let obs of obstacles) {
+                        if (cell.x === obs.x && cell.y === obs.y) {
+                            endGame();
+                            return;
+                        }
+                    }
+
+                    // Check if snake eats bait
+                    if (cell.x === bait.x && cell.y === bait.y) {
+                        eatSound.play();
+                        snake.maxCells++;
+                        score++;
+                        scoreElement.textContent = 'Score: ' + score;
+
+                        // Update high score
+                        if (score > highScore) {
+                            highScore = score;
+                            highScoreElement.textContent = 'High Score: ' + highScore;
+                            localStorage.setItem('highScore', highScore);
+                        }
+
+                        // Place new bait
+                        placeBait();
+
+                        // Increase speed
+                        if (gameSpeed > 50) {
+                            gameSpeed -= 2;
+                        }
+
+                        // Reposition obstacles to increase difficulty
+                        placeObstacles();
+                    }
+                });
+
+            }, gameSpeed);
+        }
+
+        // End game function
+        function endGame() {
+            isGameOver = true;
+            gameOverSound.play();
+            messageText.textContent = 'Game Over';
+            controlButton.textContent = 'Restart';
+            overlay.style.display = 'flex';
+        }
+
+        // Start the game initially by showing the overlay
+        overlay.style.display = 'flex';
+    </script>
+</body>
+</html>
