@@ -18,7 +18,6 @@
             background-color: #000;
             display: block;
         }
-        /* Score Container */
         #scoreContainer {
             position: absolute;
             top: 20px;
@@ -26,14 +25,13 @@
             transform: translateX(-50%);
             display: flex;
             flex-direction: column;
-            gap: 10px; /* Space between Score and High Score */
-            background-color: rgba(255, 255, 255, 0.8); /* Semi-transparent background */
+            gap: 10px; 
+            background-color: rgba(255, 255, 255, 0.8); 
             padding: 10px 20px;
             border-radius: 10px;
             box-shadow: 0 4px 8px rgba(0,0,0,0.2);
         }
 
-        /* Scoreboard and Highscore Styles */
         #scoreboard, #highscore {
             background-color: #fff;
             border: 2px solid #333;
@@ -45,7 +43,6 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
-        /* Overlay Background */
         #overlay {
             position: absolute;
             top: 0;
@@ -58,7 +55,7 @@
             align-items: center;
             z-index: 1;
         }
-        /* Message Box */
+
         #messageBox {
             background: #222;
             padding: 40px 60px;
@@ -73,7 +70,7 @@
             margin-bottom: 30px;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
         }
-        /* Control Button */
+
         #controlButton {
             padding: 15px 40px;
             font-size: 20px;
@@ -93,7 +90,7 @@
             transform: translateY(0);
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
-        /* Animation */
+
         @keyframes fadeIn {
             from { opacity: 0; transform: scale(0.8); }
             to { opacity: 1; transform: scale(1); }
@@ -101,14 +98,13 @@
     </style>
 </head>
 <body>
-    <!-- Score Container -->
+
     <div id="scoreContainer">
         <div id="scoreboard">Score: 0</div>
         <div id="highscore">High Score: 0</div>
     </div>
     <canvas id="gameCanvas" width="600" height="400"></canvas>
 
-    <!-- Overlay and Message Box -->
     <div id="overlay">
         <div id="messageBox">
             <div id="messageText">Welcome to Snake Game</div>
@@ -116,7 +112,6 @@
         </div>
     </div>
 
-    <!-- Sound Effects -->
     <audio id="eatSound" src="sounds/eat-sound.mp3"></audio>
     <audio id="gameOverSound" src="sounds/game-over-sound.wav"></audio>
 
@@ -131,20 +126,20 @@
         const eatSound = document.getElementById('eatSound');
         const gameOverSound = document.getElementById('gameOverSound');
 
-        const grid = 20; // Grid size
+        const grid = 20; 
         let count = 0;
         let score = 0;
         let highScore = 0;
-        let gameSpeed = 100; // Initial game speed in ms
+        let gameSpeed = 100; 
         let gameLoopInterval;
 
-        // Initialize high score from localStorage
+        //initialize high score from localStorage
         if (localStorage.getItem('highScore')) {
             highScore = parseInt(localStorage.getItem('highScore'));
             highScoreElement.textContent = 'High Score: ' + highScore;
         }
 
-        // Snake properties
+        //snake properties
         let snake = {
             x: 200,
             y: 200,
@@ -154,43 +149,40 @@
             maxCells: 4
         };
 
-        // Bait properties
+        //bait properties
         let bait = {
             x: 300,
             y: 300
         };
 
-        // Obstacles
+        //obstacles
         const obstacleCount = 5;
         let obstacles = [];
 
-        // Game state
+        //game state
         let isGameOver = false;
         let isPaused = false;
 
-        // Function to generate random integer in range [min, max)
         function getRandomInt(min, max) {
             return Math.floor(Math.random() * (max - min)) + min;
         }
 
-        // Place bait at a random position not occupied by the snake or obstacles
+        //place bait at a random position not occupied by the snake or obstacles
         function placeBait() {
             let valid = false;
             while (!valid) {
                 bait.x = getRandomInt(0, canvas.width / grid) * grid;
                 bait.y = getRandomInt(0, canvas.height / grid) * grid;
 
-                // Ensure bait is not on the snake
                 valid = !snake.cells.some(cell => cell.x === bait.x && cell.y === bait.y);
 
-                // Ensure bait is not on any obstacle
                 if (valid) {
                     valid = !obstacles.some(obs => obs.x === bait.x && obs.y === bait.y);
                 }
             }
         }
 
-        // Place obstacles at random positions
+        //place obstacles at random positions
         function placeObstacles() {
             obstacles = [];
             for (let i = 0; i < obstacleCount; i++) {
@@ -200,7 +192,6 @@
                     obstacle.x = getRandomInt(0, canvas.width / grid) * grid;
                     obstacle.y = getRandomInt(0, canvas.height / grid) * grid;
 
-                    // Ensure obstacle is not on the snake or bait
                     valid = !snake.cells.some(cell => cell.x === obstacle.x && cell.y === obstacle.y) &&
                             !(obstacle.x === bait.x && obstacle.y === bait.y) &&
                             !obstacles.some(obs => obs.x === obstacle.x && obs.y === obstacle.y);
@@ -209,7 +200,7 @@
             }
         }
 
-        // Handle keyboard input
+        //handle keyboard input
         document.addEventListener('keydown', function(e) {
             if (isGameOver) return;
 
@@ -225,7 +216,7 @@
             } else if (e.key === 'ArrowDown' && snake.dy === 0) {
                 snake.dy = grid;
                 snake.dx = 0;
-            } else if (e.key === ' ') { // Space bar to pause/resume
+            } else if (e.key === ' ') { 
                 if (!isGameOver) {
                     isPaused = !isPaused;
                     if (!isPaused) {
@@ -237,7 +228,6 @@
             }
         });
 
-        // Control button event (Start or Restart)
         controlButton.addEventListener('click', function() {
             if (isGameOver || score === 0) {
                 resetGame();
@@ -245,7 +235,6 @@
             overlay.style.display = 'none';
         });
 
-        // Reset game state
         function resetGame() {
             snake.x = 200;
             snake.y = 200;
@@ -267,54 +256,47 @@
             requestAnimationFrame(gameLoop);
         }
 
-        // Initialize obstacles and bait
+        //initialize obstacles and bait
         placeBait();
         placeObstacles();
 
-        // Game loop using setTimeout for adjustable speed
         function gameLoop() {
             if (isPaused || isGameOver) return;
 
             gameLoopInterval = setTimeout(function() {
                 requestAnimationFrame(gameLoop);
 
-                // Clear the canvas
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-                // Move the snake
                 snake.x += snake.dx;
                 snake.y += snake.dy;
 
-                // Check wall collisions
                 if (snake.x < 0 || snake.x >= canvas.width || snake.y < 0 || snake.y >= canvas.height) {
                     endGame();
                     return;
                 }
 
-                // Keep track of the snake's cells
                 snake.cells.unshift({x: snake.x, y: snake.y});
 
-                // Remove cells as we move away from the head
                 if (snake.cells.length > snake.maxCells) {
                     snake.cells.pop();
                 }
 
-                // Draw bait
+                //draw bait
                 ctx.fillStyle = 'red';
                 ctx.fillRect(bait.x, bait.y, grid-1, grid-1);
 
-                // Draw obstacles
+                //draw obstacles
                 ctx.fillStyle = 'gray';
                 obstacles.forEach(function(obs) {
                     ctx.fillRect(obs.x, obs.y, grid-1, grid-1);
                 });
 
-                // Draw snake
+                //draw snake
                 ctx.fillStyle = 'yellow';
                 snake.cells.forEach(function(cell, index) {
                     ctx.fillRect(cell.x, cell.y, grid-1, grid-1);  
 
-                    // Check collision with itself
                     for (let i = index + 1; i < snake.cells.length; i++) {
                         if (cell.x === snake.cells[i].x && cell.y === snake.cells[i].y) {
                             endGame();
@@ -322,7 +304,6 @@
                         }
                     }
 
-                    // Check collision with obstacles
                     for (let obs of obstacles) {
                         if (cell.x === obs.x && cell.y === obs.y) {
                             endGame();
@@ -330,29 +311,26 @@
                         }
                     }
 
-                    // Check if snake eats bait
+                    //check if snake eats bait
                     if (cell.x === bait.x && cell.y === bait.y) {
                         playEatSound();
                         snake.maxCells++;
                         score++;
                         scoreElement.textContent = 'Score: ' + score;
 
-                        // Update high score
+                        //update high score
                         if (score > highScore) {
                             highScore = score;
                             highScoreElement.textContent = 'High Score: ' + highScore;
                             localStorage.setItem('highScore', highScore);
                         }
 
-                        // Place new bait
                         placeBait();
 
-                        // Increase speed
                         if (gameSpeed > 50) {
                             gameSpeed -= 2;
                         }
 
-                        // Reposition obstacles to increase difficulty
                         placeObstacles();
                     }
                 });
@@ -360,7 +338,6 @@
             }, gameSpeed);
         }
 
-        // End game function
         function endGame() {
             isGameOver = true;
             playGameOverSound();
@@ -369,23 +346,20 @@
             overlay.style.display = 'flex';
         }
 
-        // Play eat sound
         function playEatSound() {
-            eatSound.currentTime = 0; // Rewind to start
+            eatSound.currentTime = 0; 
             eatSound.play().catch(function(error) {
                 console.error('Error playing eat sound:', error);
             });
         }
 
-        // Play game over sound
         function playGameOverSound() {
-            gameOverSound.currentTime = 0; // Rewind to start
+            gameOverSound.currentTime = 0; 
             gameOverSound.play().catch(function(error) {
                 console.error('Error playing game over sound:', error);
             });
         }
 
-        // Start the game initially by showing the overlay
         overlay.style.display = 'flex';
     </script>
 </body>
